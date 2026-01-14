@@ -10,6 +10,7 @@ AX_PRJ_LIST += AX620Q_fastnand_arm32_k419
 AX_PRJ_LIST += AX620Q_nor_arm32_k419
 AX_PRJ_LIST += AX630C_emmc_arm64_k419_sipeed_maixcam2
 AX_PRJ_LIST += AX630C_emmc_arm64_k419_sipeed_nanokvm
+AX_PRJ_LIST += AX620Q_nand_arm32_k419_sipeed_nanokvm
 
 ifneq ($(MAKECMDGOALS),plist)
 ifneq ($(MAKECMDGOALS),scan)
