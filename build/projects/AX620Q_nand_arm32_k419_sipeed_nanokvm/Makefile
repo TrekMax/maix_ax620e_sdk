@@ -5,6 +5,21 @@ BUSYBOX_PATH := $(shell pwd)/busybox
 include $(BUILD_PATH)/color.mk
 include $(BUILD_PATH)/config.mak
 
+ifeq ($(use_buildroot_rootfs),)
+	use_buildroot_rootfs := yes
+	use_rootfs := no
+    $(info default use_buildroot_rootfs for ax620q nano kvm)
+endif
+ifeq ($(use_buildroot_rootfs),no)
+	use_buildroot_rootfs := no
+	use_rootfs := yes
+    $(info use_buildroot_rootfs is not empty)
+else
+	use_buildroot_rootfs := yes
+	use_rootfs := no
+    $(info use_buildroot_rootfs for ax620q nano kvm)
+endif
+
 OUT_DIR           := $(BUILD_PATH)/out/$(PROJECT)/objs
 IMAGE_OUTDIR      := $(BUILD_PATH)/out/$(PROJECT)/images
 TOOLS_PATH        := $(HOME_PATH)/tools
@@ -16,9 +31,26 @@ COPY_FILE         := $(BUILD_PATH)/tools/copy_files.py
 MAKE_SQUASHFS     := $(TOOLS_PATH)/mksquashfs/mksquashfs
 PROJECT_MAK       := $(BUILD_PATH)/projects/$(PROJECT)/project.mak
 
+#boot
+DST_BOOTFS_DIR           := $(OUT_DIR)/bootfs
+BOOTFS_IMG               := $(IMAGE_OUTDIR)/bootfs.fat32
+
+#buildroot_rootfs
+BUILDROOT_VERSION           := buildroot-2025.11
+SRC_BUILDROOT_ROOTFS_DIR    := $(HOME_PATH)/rootfs/$(ARCH)/$(LIBC)/buildroot/${BUILDROOT_VERSION}/output/images
+DST_BUILDROOT_ROOTFS_DIR    := $(OUT_DIR)/buildroot_rootfs
+BUILDROOT_ROOTFS_IMG        := $(IMAGE_OUTDIR)/buildroot_rootfs.ext4
+BUILDROOT_ROOTFS_SPARSE_IMG := $(IMAGE_OUTDIR)/buildroot_rootfs_sparse.ext4
+BUILDROOT_ROOTFS_FSTAB_FILE := $(DST_BUILDROOT_ROOTFS_DIR)/etc/fstab
+
 #rootfs
 SRC_ROOTFS_DIR    := $(HOME_PATH)
+ifeq ($(use_buildroot_rootfs),yes)
+DST_ROOTFS_DIR    := $(DST_BUILDROOT_ROOTFS_DIR)
+else
 DST_ROOTFS_DIR    := $(OUT_DIR)/rootfs
+endif
+
 ROOTFS_IMG        := $(IMAGE_OUTDIR)/rootfs_soc_opt.ubi
 ROOTFS_UBI_IMG    := rootfs.ubifs
 SOC_UBI_IMG       := soc.ubifs
@@ -26,6 +58,7 @@ OPT_UBI_IMG       := opt.ubifs
 rootfs_img_size   := $(call KM2Bytes,$(ROOTFS_PARTITION_SIZE))
 MODIFY_FSTAB_FILE := $(BUILD_PATH)/tools/modify_fstab.sh
 OUT_FSTAB_FILE    := $(DST_ROOTFS_DIR)/etc/fstab
+
 
 #soc
 SRC_SOC_DIR       := $(HOME_PATH)
@@ -59,10 +92,10 @@ endif
 
 FSTAB_FILE        := rootfs/etc/fstab
 
-.PHONY: prepare all install rootfs image rootfs_image check
+.PHONY: prepare all install rootfs image rootfs_image bootfs bootfs_image check
 
 default: all
-all: prepare rootfs
+all: prepare rootfs bootfs
 	@$(ECHO) -e $(GREEN)"\nBuild Rootfs success!!\n" $(DONE)
 
 prepare:
@@ -70,6 +103,35 @@ prepare:
 	@$(MKDIR) -p $(OUT_DIR)
 
 rootfs:
+ifeq ($(strip $(use_buildroot_rootfs)),yes)
+##### create buildroot rootfs directory
+	@$(ECHO) -e $(GREEN) "Making buildroot $@..." $(DONE)
+ifeq ($(wildcard $(SRC_BUILDROOT_ROOTFS_DIR)/rootfs.tar),)
+	@echo "file $(SRC_BUILDROOT_ROOTFS_DIR)/rootfs.tar does not exist, please build the buildroot!"
+else
+	@rm -rf $(DST_BUILDROOT_ROOTFS_DIR)
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/proc
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/sys
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/mnt
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/tmp
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/run
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/root
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/media
+	@$(MKDIR) -p $(DST_BUILDROOT_ROOTFS_DIR)/param
+	@$(MKDIR) $(DST_BUILDROOT_ROOTFS_DIR)/var/www
+	@$(MKDIR) $(DST_BUILDROOT_ROOTFS_DIR)/etc
+	@$(MKDIR) $(IMAGE_OUTDIR)
+	@bash mk_buildroot_rootfs_sipeed.sh $(DST_BUILDROOT_ROOTFS_DIR) $(SRC_BUILDROOT_ROOTFS_DIR)
+	@python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_ROOTFS_DIR) buildroot_rootfs.filelist $(DST_BUILDROOT_ROOTFS_DIR)
+ifneq ($(findstring yes, $(debugkconfig) $(debug)),)
+	echo "/soc/scripts/kmemleak_scan.sh &" >> $(DST_BUILDROOT_ROOTFS_DIR)/etc/init.d/rcS
+endif
+	@chmod 755 $(MODIFY_FSTAB_FILE)
+	@bash $(MODIFY_FSTAB_FILE) $(BUILDROOT_ROOTFS_FSTAB_FILE) "$(FLASH_PARTITIONS)"
+endif
+else
+##### create normal rootfs directory
 	@$(ECHO) -e $(GREEN) "Making $@..." $(DONE)
 	@$(MKDIR) -p $(DST_ROOTFS_DIR)
 	@$(MKDIR) -p $(DST_ROOTFS_DIR)/proc
@@ -93,6 +155,7 @@ ifneq ($(findstring yes, $(debugkconfig) $(debug)),)
 endif
 	@chmod 755 $(MODIFY_FSTAB_FILE)
 	@bash $(MODIFY_FSTAB_FILE) $(OUT_FSTAB_FILE) "$(FLASH_PARTITIONS)"
+endif
 
 install:
 	@$(ECHO) -e $(GREEN) "rootfs $@..." $(DONE)
@@ -102,10 +165,78 @@ ifeq ($(strip $(SUPPORT_OPTEE)),TRUE)
 	@cp -rf $(MSP_OUT_PATH)/ta/* $(LIB_OPTEE_PATH)
 endif
 
-image: rootfs_image param_image
+bootfs:
+	@$(ECHO) -e $(GREEN) "Making $@..." $(DONE)
+	@$(MKDIR) -p $(DST_BOOTFS_DIR)
+	@python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(HOME_PATH) bootfs.filelist $(DST_BOOTFS_DIR)
+
+image: rootfs_image param_image bootfs_image
 	@$(ECHO) -e $(GREEN) "make $@..." $(DONE)
 
+bootfs_image:
+	@$(ECHO) -e $(GREEN) "making $@ ..." $(DONE)
+	@partsize_m=$$(echo $(BOOT_PARTITION_SIZE) | sed 's/M//g');\
+	dd if=/dev/zero of=$(BOOTFS_IMG) bs=1M count=$$partsize_m
+	mkfs.vfat -F 32 -n BOOT $(BOOTFS_IMG)
+	mkdir -p /tmp/boot_mount
+	fusefat -o rw+ $(BOOTFS_IMG) /tmp/boot_mount
+	cp -rf $(DST_BOOTFS_DIR)/* /tmp/boot_mount/
+	fusermount -u /tmp/boot_mount
+
 rootfs_image:
+ifeq ($(strip $(use_buildroot_rootfs)),yes)
+##### create buildroot rootfs image
+	@$(ECHO) -e $(GREEN) "making buildroot $@ ..." $(DONE)
+#soc
+	@python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_SOC_DIR) soc.filelist $(DST_SOC_DIR)
+	@chmod 755 $(DST_SOC_DIR)/scripts/*.sh
+ifneq ($(strip $(CMM_POOL_PARAM)),)
+	@sed -i "s/cmmpool*=.*/cmmpool=$(CMM_POOL_PARAM)/g" $(DST_SOC_DIR)/scripts/auto_load_all_drv.sh
+endif
+ifeq ($(debug), yes)
+	@python3 $(COPY_DEBUG) $(DEBUG_SO_PATH) $(DEBUG_SO_TYPE) $(DST_SO_PATH) $(DST_SO_TYPE)
+	@python3 $(COPY_DEBUG) $(DEBUG_KO_PATH) $(DEBUG_KO_TYPE) $(DST_KO_PATH) $(DST_KO_TYPE)
+endif
+ifeq ($(SUPPORT_CPIO),TRUE)
+	@cd $(DST_BUILDROOT_ROOTFS_DIR) && find . | cpio -o -H newc > $(IMAGE_OUTDIR)/rootfs.cpio
+endif
+#opt
+	@$(ECHO) -e $(GREEN) "making $@ ..." $(DONE)
+ifeq ($(asan), yes)
+	@mkdir -p $(DST_OPT_DIR)/lib
+	@cp -rf $(CROSS_LIB_PATH)/libasan*.so* $(DST_OPT_DIR)/lib
+endif
+	@mkdir -p $(DST_OPT_DIR)/etc/models/aiisp
+	@python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_OPT_DIR) opt.filelist $(DST_OPT_DIR)
+	@for element in $(SENSOR_TYPE); do \
+		if [ ! -d $(CUR_DIR)/sensors/$$element ]; then \
+			echo "Error: Unsupported sensor: $$element"; \
+			exit 1; \
+		fi; \
+		python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_OPT_DIR) $(CUR_DIR)/sensors/$$element/so.filelist $(DST_OPT_DIR); \
+		python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_OPT_DIR) $(CUR_DIR)/sensors/$$element/model.filelist $(DST_OPT_DIR); \
+	done
+	@mkdir -p $(DST_OPT_DIR)/data
+	@mkdir -p $(DST_OPT_DIR)/usr/bin
+ifeq ($(SUPPORT_VALGRIND), yes)
+	@cp -rf $(VALGRIND_PATH)/bin/* $(DST_OPT_DIR)/bin
+	@cp -rf $(VALGRIND_PATH)/libexec $(DST_OPT_DIR)/
+endif
+#image
+	@$(MKFS_UBIFS) -F -q -r $(DST_BUILDROOT_ROOTFS_DIR) -m 2048 -e 126976 -c 2047 -o $(ROOTFS_UBI_IMG)
+	@$(MKFS_UBIFS) -F -q -r $(DST_SOC_DIR) -m 2048 -e 126976 -c 2047 -o $(SOC_UBI_IMG)
+	@$(MKFS_UBIFS) -F -q -r $(DST_OPT_DIR) -m 2048 -e 126976 -c 2047 -o $(OPT_UBI_IMG)
+	@$(MK_UBINIZE) -o $(ROOTFS_IMG) -m 2048 -p 128KiB ubi/ubinize_1Gb.cfg
+	@imgsize=$$(stat -c %s $(ROOTFS_IMG));\
+	if [ $$imgsize -gt $(rootfs_img_size) ]; then \
+		echo "Error: $(ROOTFS_IMG) file size($$imgsize bytes) exceeds $(strip $(rootfs_img_size)) bytes"; \
+		exit 1; \
+	fi
+	@cp -rf $(ROOTFS_UBI_IMG) $(IMAGE_OUTDIR)
+	@cp -rf $(SOC_UBI_IMG) $(IMAGE_OUTDIR)
+	@cp -rf $(OPT_UBI_IMG) $(IMAGE_OUTDIR)
+else
+##### create rootfs image
 	@$(ECHO) -e $(GREEN) "making $@ ..." $(DONE)
 #soc
 	@python3 $(COPY_FILE) $(PROJECT) $(PROJECT_MAK) $(SRC_SOC_DIR) soc.filelist $(DST_SOC_DIR)
@@ -155,6 +286,7 @@ endif
 	@cp -rf $(ROOTFS_UBI_IMG) $(IMAGE_OUTDIR)
 	@cp -rf $(SOC_UBI_IMG) $(IMAGE_OUTDIR)
 	@cp -rf $(OPT_UBI_IMG) $(IMAGE_OUTDIR)
+endif
 
 param_image:
 	@$(ECHO) -e $(GREEN) "making $@ ..." $(DONE)

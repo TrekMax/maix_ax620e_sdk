@@ -4,7 +4,7 @@ set -e
 
 echo "making axp ..."
 
-while getopts "o:p:s:d:u:v:z:a:l:f:" arg
+while getopts "o:p:s:d:u:v:z:a:l:f:b:" arg
 do
 	case "$arg" in
 		o)
@@ -46,6 +46,10 @@ do
 			echo "libc type: $OPTARG"
 			LIBC_TYPE=$OPTARG
 			;;
+		b)
+			echo "build buildroot axp: $OPTARG"
+			BUILD_BUILDROOT_AXP=$OPTARG
+			;;
 	esac
 done
 
@@ -57,17 +61,20 @@ echo "CHIP_GROUP: $CHIP_GROUP"
 
 if [ -z "$SENSOR_TYPE" ]; then
 AXP_NAME=${PROJECT}_${VERSION_EXT}_${LIBC_TYPE}.axp
-AXP_UBUNTU_ROOTFS_NAME=${PROJECT}_ubuntu_rootfs_${VERSION_EXT}_${LIBC_TYPE}.axp
+AXP_UBUNTU_ROOTFS_NAME=${PROJECT}_ubuntu_rootfs_${SENSOR_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
+AXP_BUILDROOT_ROOTFS_NAME=${PROJECT}_buildroot_rootfs_${VERSION_EXT}_${LIBC_TYPE}.axp
 else
 if [ -z "$DETECT_TYPE" ]; then
 SENSOR_TYPE=$(echo $SENSOR_TYPE | tr ' ' '_')
 AXP_NAME=${PROJECT}_${SENSOR_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
 AXP_UBUNTU_ROOTFS_NAME=${PROJECT}_ubuntu_rootfs_${SENSOR_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
+AXP_BUILDROOT_ROOTFS_NAME=${PROJECT}_buildroot_rootfs_${VERSION_EXT}_${LIBC_TYPE}.axp
 else
 DETECT_TYPE=$(echo $DETECT_TYPE | tr ' ' '_')
 SENSOR_TYPE=$(echo $SENSOR_TYPE | tr ' ' '_')
 AXP_NAME=${PROJECT}_${SENSOR_TYPE}_${DETECT_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
 AXP_UBUNTU_ROOTFS_NAME=${PROJECT}_ubuntu_rootfs_${SENSOR_TYPE}_${DETECT_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
+AXP_BUILDROOT_ROOTFS_NAME=${PROJECT}_buildroot_rootfs_${DETECT_TYPE}_${VERSION_EXT}_${LIBC_TYPE}.axp
 fi
 fi
 
@@ -77,6 +84,7 @@ OUTPUT_PATH=$LOCAL_PATH/out
 IMG_PATH=$OUTPUT_PATH/$PROJECT/images
 AXP_PATH=$OUTPUT_PATH/$AXP_NAME
 AXP_UBUNTU_ROOTFS_PATH=$OUTPUT_PATH/$AXP_UBUNTU_ROOTFS_NAME
+AXP_BUILDROOT_ROOTFS_PATH=$OUTPUT_PATH/$AXP_BUILDROOT_ROOTFS_NAME
 cp $HOME_PATH/build/tools/imgsign/eip_ax620e.bin $IMG_PATH/eip_ax620e.bin
 TOOL_PATH=$HOME_PATH/tools/mkaxp/make_axp_v2.py
 GEN_XML_PATH=$HOME_PATH/build/tools/gen_axp_xml.py
@@ -100,6 +108,7 @@ UBOOT_A_PATH=$IMG_PATH/u-boot_signed.bin
 UBOOT_B_PATH=$IMG_PATH/u-boot_b_signed.bin
 ROOTFS_PATH=$IMG_PATH/rootfs_sparse.ext4
 UBUNTU_ROOTFS_PATH=$IMG_PATH/ubuntu_rootfs_sparse.ext4
+BUILDROOT_ROOTFS_PATH=$IMG_PATH/buildroot_rootfs.ext4
 PARAM_PATH=$IMG_PATH/param_sparse.ext4
 SOC_PATH=$IMG_PATH/soc_sparse.ext4
 OPT_PATH=$IMG_PATH/opt_sparse.ext4
@@ -172,7 +181,10 @@ if [[ "x$BUILD_UBUNTU_AXP" == "x" ]]; then
 	BUILD_UBUNTU_AXP="yes"
 fi
 
-if [[ "$BUILD_UBUNTU_AXP" = "yes" ]]; then
+if [[ "$BUILD_BUILDROOT_AXP" = "yes" ]]; then
+	get_axp_parm "$FLASH_PARTITIONS"
+	python3 $TOOL_PATH -p $CHIP_GROUP -v $VERSION_EXT -x $PAC_XML_PATH -o $AXP_BUILDROOT_ROOTFS_PATH ${AXP_PARM}
+elif [[ "$BUILD_UBUNTU_AXP" = "yes" ]]; then
 	ROOTFS_PATH=$UBUNTU_ROOTFS_PATH
 	get_axp_parm "$FLASH_PARTITIONS"
 	python3 $TOOL_PATH -p $CHIP_GROUP -v $VERSION_EXT -x $PAC_XML_PATH -o $AXP_UBUNTU_ROOTFS_PATH ${AXP_PARM}

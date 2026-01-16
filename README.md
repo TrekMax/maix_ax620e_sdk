@@ -30,15 +30,27 @@ sudo tar -xvf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz -C /opt
 # Configure environment variables
 echo 'export PATH=/opt/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin:${PATH}' >> ~/.bashrc
 source ~/.bashrc
+
+# Test toolchain
+aarch64-none-linux-gnu-gcc --version
+which aarch64-none-linux-gnu-gcc
 ```
 
 > Alternative toolchain download method: Download the gcc9.2-2019.12 toolchain from [here](https://developer.arm.com/downloads/-/gnu-a)
 
 
-* Test toolchain
+* 下载工具链(AX620Q)
 ```shell
-aarch64-none-linux-gnu-gcc --version
-which aarch64-none-linux-gnu-gcc
+# 下载和解压
+wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-a/10.3-2021.07/binrel/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf.tar.xz
+sudo tar -xvf gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf.tar.xz -C /opt
+
+# 配置环境变量
+echo 'export PATH=/opt/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin:${PATH}' >> ~/.bashrc
+
+# 测试工具链
+arm-none-linux-gnueabihf-gcc --version
+which arm-none-linux-gnueabihf-gcc
 ```
 
 * Install necessary software
@@ -51,7 +63,19 @@ sudo python3 -m pip install --upgrade pip
 sudo pip3 install lxml axp-tools pyelftools
 ```
 
-* Build ubuntu rootfs
+* Build ubuntu rootfs (AX620Q)
+
+For project AX620Q, we need to compile the buildroot rootfs.
+
+```shell
+cd rootfs/arm/glibc/buildroot/buildroot-2025.11
+make sipeed_maix_nanokvm_defconfig
+make
+```
+
+* Build ubuntu rootfs (AX630C)
+
+For project AX630C, we need to compile the ubuntu rootfs.
 
 ```shell
 # If the rootfs source code has not been modified, you only need to build once
@@ -81,7 +105,11 @@ make p=AX630C_emmc_arm64_k419_sipeed_nanokvm clean all install axp -j8
 
 * In `build/out` directory, you will find the `axp` format package.
 
-## Customize rootfs
+## Customize rootfs (AX620Q)
+
+Reference: [buildroot](https://buildroot.org/downloads/manual/manual.html)
+
+## Customize rootfs (AX630C)
 
 If you need to add or remove rootfs packages during development, you can modify the packaging script for the corresponding platform.
 

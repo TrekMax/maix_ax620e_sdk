@@ -20,7 +20,7 @@ git submodule update --init --recursive
 
 ## 编译
 
-* 下载工具链
+* 下载工具链(AX630C)
 
 ```shell
 # 下载和解压
@@ -30,14 +30,27 @@ sudo tar -xvf gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz -C /opt
 # 配置环境变量
 echo 'export PATH=/opt/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu/bin:${PATH}' >> ~/.bashrc
 source ~/.bashrc
-```
 
-> 工具链备用下载方法：在[这里](https://developer.arm.com/downloads/-/gnu-a)下载 gcc9.2-2019.12 工具链
-
-* 测试工具链
-```shell
+# 测试工具链
 aarch64-none-linux-gnu-gcc --version
 which aarch64-none-linux-gnu-gcc
+```
+
+> AX630C工具链备用下载方法：在[这里](https://developer.arm.com/downloads/-/gnu-a)下载 gcc9.2-2019.12 工具链
+
+* 下载工具链(AX620Q)
+```shell
+# 下载和解压
+wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-a/10.3-2021.07/binrel/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf.tar.xz
+sudo tar -xvf gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf.tar.xz -C /opt
+
+# 配置环境变量
+echo 'export PATH=/opt/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin:${PATH}' >> ~/.bashrc
+source ~/.bashrc
+
+# 测试工具链
+arm-none-linux-gnueabihf-gcc --version
+which arm-none-linux-gnueabihf-gcc
 ```
 
 * 安装必要的软件
@@ -50,7 +63,19 @@ sudo python3 -m pip install --upgrade pip
 sudo pip3 install lxml pyelftools
 ```
 
-* 构建 ubuntu rootfs
+* 构建 buildroot rootfs (AX620Q)
+
+对于AX620Q的工程, 需要编译buildroot根文件系统
+
+```shell
+cd rootfs/arm/glibc/buildroot/buildroot-2025.11
+make sipeed_maix_nanokvm_defconfig
+make
+```
+
+* 构建 ubuntu rootfs (AX630C)
+
+对于AX630C的工程, 需要编译ubuntu根文件系统
 
 ```shell
 # 只要rootfs源码没有修改， 就只需要构建一次
@@ -80,7 +105,11 @@ make p=AX630C_emmc_arm64_k419_sipeed_nanokvm clean all install axp -j8
 
 * 在 `build/out`目录下就会有 `axp` 格式的包了。
 
-## 定制rootfs
+## 定制rootfs (AX620Q)
+
+参考[buildroot](https://buildroot.org/downloads/manual/manual.html)文档
+
+## 定制rootfs (AX630C)
 
 开发时如果需要增加/删除rootfs的包， 可以修改对应平台的打包脚本
 

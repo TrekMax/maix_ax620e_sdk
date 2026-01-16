@@ -11,6 +11,9 @@
 #include "statMgr.hpp"
 #include <map>
 
+// ### SIPEED EDIT ###
+#include <string>
+// ### SIPEED EDIT END ###
 AX_VOID CStatMgr::StatTrackMgr(const AX_SKEL_OBJECT_ITEM_T *pstObjectItems, STAT_OBJECT_NUM_T &stObjectNum) {
     if (!pstObjectItems) {
         return;

@@ -26,7 +26,7 @@ MSP_OUT_PATH     := $(HOME_PATH)/msp/out/$(MSP_OUT_DIR)
 OSDRV_OUT_PATH   := $(HOME_PATH)/kernel/osdrv/out/$(OSDRV_OUT_DIR)
 ROOTFS_TARGET_PATH := $(MSP_OUT_PATH)
 
-include $(BUILD_DIR)/cross_$(ARCH)_$(LIBC).mak
+include $(BUILD_DIR)/cross_$(ARCH)_$(LIBC)_nanokvm.mak
 include $(PRJECT_DIR)/common.mak
 
 # You are not advised to modify the following options
@@ -52,6 +52,7 @@ COPY_NFS_KO                    := TRUE
 ifeq ($(strip $(SUPPORT_ATF)),FALSE)
 SUPPORT_OPTEE                  := FALSE
 endif
+use_buildroot_rootfs           := yes
 
 # The address of the text segment in the startup phase, do not recommend modification.
 IMG_HEADER_SIZE                 := (1024)
@@ -65,15 +66,15 @@ KERNEL_IMG_HEADER_ADDR          := ($(AXERA_KERNEL_IMG_ADDR) - $(IMG_HEADER_SIZE
 ############################################################################################
 # Note: The above configuration is generally not modified.
 
-# The sensor type can be modified by compiling parameters
-SENSOR_TYPE                  := os04a10 sc200ai sc450ai sc850sl
-ifneq ($(strip $(sensor)),)
-SENSOR_TYPE                  := $(sensor)
-endif
-SENSOR_PATH                  := $(CUR_DIR)/sensors/$(SENSOR_TYPE)
-ifeq ($(wildcard $(SENSOR_PATH)),)
-$(error "Unsupported sensor: $(SENSOR_TYPE)")
-endif
+# # The sensor type can be modified by compiling parameters
+# SENSOR_TYPE                  := os04a10 sc200ai sc450ai sc850sl
+# ifneq ($(strip $(sensor)),)
+# SENSOR_TYPE                  := $(sensor)
+# endif
+# SENSOR_PATH                  := $(CUR_DIR)/sensors/$(SENSOR_TYPE)
+# ifeq ($(wildcard $(SENSOR_PATH)),)
+# $(error "Unsupported sensor: $(SENSOR_TYPE)")
+# endif
 
 
 
@@ -85,7 +86,8 @@ ENV_PARTITION_SIZE             := 512K
 PARAM_PARTITION_SIZE           := 4M
 DTB_PARTITION_SIZE             := 512K
 KERNEL_PARTITION_SIZE          := 4M
-ROOTFS_PARTITION_SIZE          := 112M
+BOOT_PARTITION_SIZE     	   := 16M
+ROOTFS_PARTITION_SIZE          := 80M
 AUTO_FIT_PARTITION             := ROOTFS
 
 # env part size, size is equal to ENV_PARTITION_SIZE
