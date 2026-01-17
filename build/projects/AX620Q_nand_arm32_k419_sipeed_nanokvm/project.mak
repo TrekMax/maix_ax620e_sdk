@@ -85,9 +85,9 @@ UBOOT_PARTITION_SIZE           := 1M
 ENV_PARTITION_SIZE             := 512K
 PARAM_PARTITION_SIZE           := 4M
 DTB_PARTITION_SIZE             := 512K
-KERNEL_PARTITION_SIZE          := 4M
-BOOT_PARTITION_SIZE     	   := 16M
-ROOTFS_PARTITION_SIZE          := 80M
+KERNEL_PARTITION_SIZE          := 6M
+BOOT_PARTITION_SIZE     	   := 8M
+ROOTFS_PARTITION_SIZE          := 96M
 AUTO_FIT_PARTITION             := ROOTFS
 
 # env part size, size is equal to ENV_PARTITION_SIZE
@@ -118,8 +118,13 @@ FLASH_PARTITIONS  := $(shell echo '$(FLASH_PARTITIONS)' | tr -d ' ')
 ROOTFS_TYPE       := ubifs
 ROOTFS_POSITION   := $(shell echo "$(FLASH_PARTITIONS)" | tr ',' '\n' | grep -n 'rootfs' | cut -d ':' -f 1)
 ROOTFS_DEV        := /dev/mtdblock$(strip $(ROOTFS_POSITION))
-KERNEL_BOOTARGS   := "$(OS_MEM) console=ttyS0,115200n8 loglevel=8 earlycon=uart8250,mmio32,0x4880000 board_id=0x0,boot_reason=0x00,noinitrd \
-root=$(ROOTFS_DEV) rw rootfstype=$(ROOTFS_TYPE) ubi.mtd=8,2048 root=ubi0:rootfs init=/linuxrc mtdparts=spi4.0:$(FLASH_PARTITIONS)"
+ifeq ($(strip $(use_buildroot_rootfs)),yes)
+ROOTFS_INIT       := /sbin/init
+else
+ROOTFS_INIT       := /linuxrc
+endif
+KERNEL_BOOTARGS   := "$(OS_MEM) console=ttyS0,115200n8 loglevel=8 earlycon=uart8250,mmio32,0x4880000 board_id=0x0,boot_reason=0x00 \
+rootfstype=$(ROOTFS_TYPE) ubi.mtd=8,2048 root=ubi0:rootfs init=${ROOTFS_INIT} mtdparts=spi4.0:$(FLASH_PARTITIONS)"
 
 # Calculates the position of each partition in flash
 DDRINIT_HEADER_FLASH_BASE     := $(call calculate_flash_base,$(FLASH_PARTITIONS),ddrinit)

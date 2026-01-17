@@ -101,6 +101,8 @@ all: prepare rootfs bootfs
 prepare:
 	@$(ECHO) -e $(GREEN) "Making $@..." $(DONE)
 	@$(MKDIR) -p $(OUT_DIR)
+	@$(ECHO) -e $(GREEN) "gen_initramfs.sh" $(DONE)
+	./gen_initramfs.sh
 
 rootfs:
 ifeq ($(strip $(use_buildroot_rootfs)),yes)

@@ -28,6 +28,8 @@ tar -xf $TARGET_ROOTFS_BASE -C $TARGET_ROOTFS_DIR
 
 #modify hostname
 echo kvm > $TARGET_ROOTFS_DIR/etc/hostname
+echo console > $TARGET_ROOTFS_DIR/etc/securetty
+echo ttyS0 >> $TARGET_ROOTFS_DIR/etc/securetty
 
 #cp rootfs specific files
 # cp -Rf $2/rootfs_overlay/* $TARGET_ROOTFS_DIR

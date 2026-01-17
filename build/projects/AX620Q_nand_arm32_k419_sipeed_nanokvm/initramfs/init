@@ -1,0 +1,30 @@
+#!/bin/sh
+
+export PATH=/bin
+echo "Run initramfs!"
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+
+ROOTFS=/rootfs
+BOOTARGS=`cat /proc/cmdline`
+
+function run_sh()
+{
+    exec /bin/sh
+}
+
+mkdir -p ${ROOTFS}
+
+mount -t ubifs ubi0:rootfs ${ROOTFS}
+if [ "$?" -eq "1" ]; then
+    run_sh
+fi
+
+if [[ "$BOOTARGS" == *"initramfs"* ]]; then
+    run_sh
+fi
+
+# boot
+exec switch_root ${ROOTFS} /sbin/init
