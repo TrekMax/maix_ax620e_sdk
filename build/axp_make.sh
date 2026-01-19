@@ -182,6 +182,7 @@ if [[ "x$BUILD_UBUNTU_AXP" == "x" ]]; then
 fi
 
 if [[ "$BUILD_BUILDROOT_AXP" = "yes" ]]; then
+	BOOT_PATH=$IMG_PATH/bootfs.ubi
 	get_axp_parm "$FLASH_PARTITIONS"
 	python3 $TOOL_PATH -p $CHIP_GROUP -v $VERSION_EXT -x $PAC_XML_PATH -o $AXP_BUILDROOT_ROOTFS_PATH ${AXP_PARM}
 elif [[ "$BUILD_UBUNTU_AXP" = "yes" ]]; then

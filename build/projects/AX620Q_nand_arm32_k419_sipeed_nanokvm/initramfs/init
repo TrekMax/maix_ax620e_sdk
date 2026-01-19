@@ -15,14 +15,13 @@ function run_sh()
     exec /bin/sh
 }
 
-mkdir -p ${ROOTFS}
-
-mount -t ubifs ubi0:rootfs ${ROOTFS}
-if [ "$?" -eq "1" ]; then
+if [[ "$BOOTARGS" == *"initramfs"* ]]; then
     run_sh
 fi
 
-if [[ "$BOOTARGS" == *"initramfs"* ]]; then
+mkdir -p ${ROOTFS}
+mount -t ubifs ubi0:rootfs ${ROOTFS}
+if [ "$?" -eq "1" ]; then
     run_sh
 fi
 

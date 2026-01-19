@@ -86,8 +86,7 @@ ENV_PARTITION_SIZE             := 512K
 PARAM_PARTITION_SIZE           := 4M
 DTB_PARTITION_SIZE             := 512K
 KERNEL_PARTITION_SIZE          := 6M
-BOOT_PARTITION_SIZE     	   := 8M
-ROOTFS_PARTITION_SIZE          := 96M
+ROOTFS_PARTITION_SIZE          := 114M
 AUTO_FIT_PARTITION             := ROOTFS
 
 # env part size, size is equal to ENV_PARTITION_SIZE
