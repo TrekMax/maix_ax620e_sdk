@@ -175,6 +175,7 @@ apt install -y \
     pkg-config \
     libgl1
 
+systemctl mask dnsmasq
 apt install -y \
     libevent-dev libjpeg-dev libbsd-dev libsystemd-dev \
     libmd-dev libdrm-dev libspeexdsp-dev libopus-dev libcjson-dev \
@@ -183,7 +184,7 @@ apt install -y \
     lua-ansicolors lua-json lua-lpeg ssl-cert libconfig-dev libnice-dev \
     libjansson-dev libsrtp2-dev libwebsockets-dev libdbus-1-dev \
     libxkbcommon-dev tesseract-ocr tesseract-ocr-eng nginx ttyd libusb-1.0-0-dev \
-    libldap2-dev libsasl2-dev
+    libldap2-dev libsasl2-dev dnsmasq
 
 # cd /Python-*
 # ./configure --enable-optimizations --prefix=/usr/local --enable-shared
