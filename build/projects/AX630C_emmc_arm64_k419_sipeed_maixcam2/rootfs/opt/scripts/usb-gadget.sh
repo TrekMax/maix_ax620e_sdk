@@ -217,6 +217,8 @@ usb_gadget_start()
     if [[ "${maix_usb_rndis}x" == "1x" ]]; then
         mkdir -p functions/rndis.${rndis_ifname}
         rm -f configs/c.1/rndis.${rndis_ifname}
+        echo RNDIS > functions/rndis.${rndis_ifname}/os_desc/interface.rndis/compatible_id
+        echo 5162001 > functions/rndis.${rndis_ifname}/os_desc/interface.rndis/sub_compatible_id
         ln -s functions/rndis.${rndis_ifname} configs/c.1
     fi
 
@@ -224,7 +226,17 @@ usb_gadget_start()
     if [[ "${maix_usb_ncm}x" == "1x" ]]; then
         mkdir -p functions/ncm.${ncm_ifname}
         rm -f configs/c.1/ncm.${ncm_ifname}
+        echo WINNCM > functions/ncm.${ncm_ifname}/os_desc/interface.ncm/compatible_id
         ln -s functions/ncm.${ncm_ifname} configs/c.1
+    fi
+
+    # Microsoft OS 2.0 Descriptor
+    if [[ "${maix_usb_ncm}x" == "1x" || "${maix_usb_rndis}x" == "1x" ]]; then
+        echo 1 > os_desc/use
+        echo 0xCD > os_desc/b_vendor_code
+        echo MSFT100 > os_desc/qw_sign
+        rm -f os_desc/c.1
+        ln -s configs/c.1 os_desc
     fi
 
     # mass storage
