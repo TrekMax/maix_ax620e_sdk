@@ -61,20 +61,18 @@ echo >> $TARGET_ROOTFS_DIR/etc/rc.local
 echo "chmod 755 /soc/scripts/npu_set_bw_limiter.sh" >> $TARGET_ROOTFS_DIR/etc/rc.local
 echo "bash /soc/scripts/npu_set_bw_limiter.sh start" >> $TARGET_ROOTFS_DIR/etc/rc.local
 echo >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "devmem 0x10030028 32 0x000006A0" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo >> $TARGET_ROOTFS_DIR/etc/rc.local
 echo "bash /etc/init.d/axsyslogd start" >> $TARGET_ROOTFS_DIR/etc/rc.local
 echo "bash /etc/init.d/axklogd start" >> $TARGET_ROOTFS_DIR/etc/rc.local
 
-echo "chmod 755 /etc/init.d/S99checkboot" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "bash /etc/init.d/S99checkboot start" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "chmod 755 /etc/init.d/S99checkota" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "bash /etc/init.d/S99checkota start" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "chmod 755 /etc/init.d/S99checkboot" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "bash /etc/init.d/S99checkboot start" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "chmod 755 /etc/init.d/S99checkota" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "bash /etc/init.d/S99checkota start" >> $TARGET_ROOTFS_DIR/etc/rc.local
 
-echo >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "if ! systemctl is-active --quiet sysdev.service; then" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "    systemctl enable --now sysdev.service" >> $TARGET_ROOTFS_DIR/etc/rc.local
-echo "fi" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "if ! systemctl is-active --quiet sysdev.service; then" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "    systemctl enable --now sysdev.service" >> $TARGET_ROOTFS_DIR/etc/rc.local
+# echo "fi" >> $TARGET_ROOTFS_DIR/etc/rc.local
 
 #modify profile
 echo >> $TARGET_ROOTFS_DIR/etc/profile

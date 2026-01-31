@@ -224,8 +224,8 @@ ifeq ($(strip $(use_buildroot_rootfs)),yes)
 ##### create buildroot rootfs image
 	@$(ECHO) -e $(GREEN) "making buildroot $@ ..." $(DONE)
 #image
-	@$(MKFS_UBIFS) -F -q -r $(DST_BUILDROOT_ROOTFS_DIR) -m 2048 -e 126976 -c 2047 -o $(ROOTFS_UBI_IMG)
-	@$(MKFS_UBIFS) -F -q -r $(DST_BOOTFS_DIR) -m 2048 -e 126976 -c 30 -o $(BOOTFS_UBI_IMG)
+	@fakeroot $(MKFS_UBIFS) -F -q -U -r $(DST_BUILDROOT_ROOTFS_DIR) -m 2048 -e 126976 -c 2047 -o $(ROOTFS_UBI_IMG)
+	@fakeroot $(MKFS_UBIFS) -F -q -U -r $(DST_BOOTFS_DIR) -m 2048 -e 126976 -c 30 -o $(BOOTFS_UBI_IMG)
 	@$(MK_UBINIZE) -o $(ROOTFS_IMG) -m 2048 -p 128KiB ubi/ubinize_1Gb.cfg
 	@imgsize=$$(stat -c %s $(ROOTFS_IMG));\
 	if [ $$imgsize -gt $(rootfs_img_size) ]; then \
