@@ -97,8 +97,10 @@ SYS_DRAM_BASE           := 0x40000000
 SYS_DRAM_SIZE           := 256 #MB
 
 # linux OS memory config
-OS_MEM_SIZE          := 96 #MB
-OS_MEM               := mem=$(strip $(OS_MEM_SIZE))M
+OS_MEM_SIZE             := 96 #MB
+BOARD_256M_OS_MEM_SIZE  := 96
+OS_MEM                  := mem=$(strip $(OS_MEM_SIZE))M
+BOARD_256M_OS_MEM       := mem=$(strip $(BOARD_256M_OS_MEM_SIZE))M
 
 # cmm memory config
 CMM_START_ADDR       := $(call AddAddressMB, $(SYS_DRAM_BASE), $(OS_MEM_SIZE))
