@@ -7,6 +7,7 @@ mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev
 
+BOOTFS=/boot
 ROOTFS=/rootfs
 BOOTARGS=`cat /proc/cmdline`
 
@@ -19,11 +20,38 @@ if [[ "$BOOTARGS" == *"initramfs"* ]]; then
     run_sh
 fi
 
+mkdir -p ${BOOTFS}
 mkdir -p ${ROOTFS}
+
+mount -t ubifs ubi0:bootfs ${BOOTFS}
+
 mount -t ubifs ubi0:rootfs ${ROOTFS}
 if [ "$?" -eq "1" ]; then
     run_sh
 fi
 
+# set device key
+device_key=$(cat /proc/ax_proc/uid | awk '{print $2}'|cut -c 3-)
+echo $device_key > ${ROOTFS}/device_key
+
+# set mac addr
+mac_uid=$(sha512sum ${ROOTFS}/device_key  | head -c 4)
+mac_hi=$(echo $mac_uid | cut -c 1-2)
+mac_lo=$(echo $mac_uid | cut -c 3-4)
+new_mac="48:da:35:6d:${mac_hi}:${mac_lo}"
+interfaces_file="/${ROOTFS}/etc/network/interfaces"
+if grep -q "hwaddress ether" "$interfaces_file"; then
+    sed -i "s/^\(.*hwaddress ether \)[^ ]*\$/\1$new_mac/" "$interfaces_file"  &> /dev/null
+else
+    echo "hwaddress ether $new_mac" >> "$interfaces_file"
+fi
+
+if [ -e ${BOOTFS}/first_time_boot ]; then
+    echo kvm-${mac_hi}${mac_lo} > ${ROOTFS}/etc/hostname
+    rm -f ${BOOTFS}/first_time_boot
+    sync
+fi
+
 # boot
+umount ${BOOTFS}
 exec switch_root ${ROOTFS} /sbin/init

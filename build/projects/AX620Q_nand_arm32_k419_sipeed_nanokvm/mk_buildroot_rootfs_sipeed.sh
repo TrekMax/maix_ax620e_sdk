@@ -101,7 +101,7 @@ sed -i '/DefaultTimeoutStopSec/a DefaultTimeoutStopSec=5s' $TARGET_ROOTFS_DIR/et
 echo  >> $TARGET_ROOTFS_DIR/etc/network/interfaces
 echo  >> $TARGET_ROOTFS_DIR/etc/network/interfaces
 echo "allow-hotplug eth0" >> $TARGET_ROOTFS_DIR/etc/network/interfaces
-echo "iface eth0 inet dhcp" >> $TARGET_ROOTFS_DIR/etc/network/interfaces
+echo "iface eth0 inet manual" >> $TARGET_ROOTFS_DIR/etc/network/interfaces
 
 #remove this file or mac address will be modified all same
 rm $TARGET_ROOTFS_DIR/usr/lib/udev/rules.d/80-net-setup-link.rules

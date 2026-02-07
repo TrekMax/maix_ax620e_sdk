@@ -66,15 +66,15 @@ KERNEL_IMG_HEADER_ADDR          := ($(AXERA_KERNEL_IMG_ADDR) - $(IMG_HEADER_SIZE
 ############################################################################################
 # Note: The above configuration is generally not modified.
 
-# # The sensor type can be modified by compiling parameters
-# SENSOR_TYPE                  := os04a10 sc200ai sc450ai sc850sl
-# ifneq ($(strip $(sensor)),)
-# SENSOR_TYPE                  := $(sensor)
-# endif
-# SENSOR_PATH                  := $(CUR_DIR)/sensors/$(SENSOR_TYPE)
-# ifeq ($(wildcard $(SENSOR_PATH)),)
-# $(error "Unsupported sensor: $(SENSOR_TYPE)")
-# endif
+# The sensor type can be modified by compiling parameters
+SENSOR_TYPE                  := dummysensor
+ifneq ($(strip $(sensor)),)
+SENSOR_TYPE                  := $(sensor)
+endif
+SENSOR_PATH                  := $(CUR_DIR)/sensors/$(SENSOR_TYPE)
+ifeq ($(wildcard $(SENSOR_PATH)),)
+$(error "Unsupported sensor: $(SENSOR_TYPE)")
+endif
 
 
 
