@@ -14,8 +14,6 @@ sbin/axklogd
 lib/libax_syslog.so
 lib/libatomic.so*
 -opt/*
-@dir: rootfs/$(ARCH)/$(LIBC)/rootfs_tools
-*
 
 @dir: build/projects
 $(PROJECT)/rootfs/etc/* etc/

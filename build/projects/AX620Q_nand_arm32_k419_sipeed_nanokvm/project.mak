@@ -30,7 +30,7 @@ include $(BUILD_DIR)/cross_$(ARCH)_$(LIBC)_nanokvm.mak
 include $(PRJECT_DIR)/common.mak
 
 # You are not advised to modify the following options
-BUILD_BUSYBOX                  := TRUE
+BUILD_BUSYBOX                  := FALSE
 SUPPORT_UBIFS                  := TRUE
 SUPPORT_CPIO                   := FALSE
 SUPPPORT_GZIPD                 := TRUE
