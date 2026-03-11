@@ -113,7 +113,7 @@
 0x023020A8, 0x00060003,  /* PadName = SD_PWR_EN            Fuction = GPIO0_A23 */
 0x02305008, 0x0000000f,  /* SLEEP_CTRL */
 0x02305004, 0x00000201,  /* SLEEP_CTRL */
-0x0230500C, 0x00060000,  /* PadName = MICP_L_D             Fuction = GPIO1_A4 */
+0x0230500C, 0x00060083,  /* PadName = MICP_L_D             Fuction = GPIO1_A4 */
 0x02305018, 0x00060000,  /* PadName = MICN_L_D             Fuction = GPIO1_A5 */
 0x02305024, 0x00060000,  /* PadName = MICN_R_D             Fuction = GPIO1_A6 */
 0x02305030, 0x00060000,  /* PadName = MICP_R_D             Fuction = GPIO1_A7 */
