@@ -559,7 +559,11 @@ int read_img_header(u32 flash_type, struct img_header *header, struct img_header
 {
 	int sel_clk;
 	u32 flash_addr, flash_addr_bk;
+#ifdef AX620Q_EMMC_4BIT
+	u32 bus_width = BUS_WIDTH_4;
+#else
 	u32 bus_width = BUS_WIDTH_8;
+#endif
 	/* read image header, try different bus frequency if failed
 	 * emmc/sd use 12Mhz
 	 */

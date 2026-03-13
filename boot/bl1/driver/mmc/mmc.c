@@ -14,7 +14,9 @@
 #define true 1
 #define false 0
 
+#ifndef AX620Q_EMMC_4BIT
 #define MMC_HS400_ES_SUPPORT
+#endif
 // #define MMC_HS400_SUPPORT
 #define MMC_HS200_SUPPORT
 
@@ -450,7 +452,7 @@ int mmc_send_tuning(void *host, u32 opcode, int *cmd_error)
 	data.flags = MMC_DATA_READ;
 	ret = sdhci_send_cmd(host, &cmd, &data);
 	if (ret) {
-		err("tuning cmd send err: %d\r\n", ret);
+		// err("tuning cmd send err: %d\r\n", ret);
 		return ret;
 	}
 

@@ -154,7 +154,7 @@ ifneq (,$(findstring $(PROJECT), "AX630C_emmc_arm64_k515" "AX630C_emmc_arm64_k41
 ### SIPEED EDIT END ###
 CPPFLAGS += -DUBOOT_HEADER_BAK_FLASH_BASE="$(UBOOT_B_HEADER_FLASH_BASE)"
 CPPFLAGS += -DATF_HEADER_BAK_FLASH_BASE="$(ATF_B_HEADER_FLASH_BASE)"
-else ifneq (,$(findstring $(PROJECT), "AX630C_emmc_arm32_k419"))
+else ifneq (,$(findstring $(PROJECT), "AX630C_emmc_arm32_k419" "AX620Q_emmc_arm32_k419"))
 CPPFLAGS += -DUBOOT_HEADER_BAK_FLASH_BASE="$(UBOOT_B_HEADER_FLASH_BASE)"
 CPPFLAGS += -DATF_HEADER_BAK_FLASH_BASE="0x0"
 else
@@ -238,7 +238,7 @@ ifeq ($(strip $(FLASH_TYPE)), emmc)
 else
 ### SIPEED EDIT END ###
 
-ifneq (,$(findstring $(PROJECT), "AX630C_emmc_arm64_k515" "AX620E_haps" "AX620E_zebu" "AX630C_fastemmc_arm64_k515" "AX630C_emmc_arm64_k419" "AX630C_fastemmc_arm64_k419" "AX630C_fastemmc_arm32_k419" "AX630C_emmc_arm32_k419"))
+ifneq (,$(findstring $(PROJECT), "AX630C_emmc_arm64_k515" "AX620E_haps" "AX620E_zebu" "AX630C_fastemmc_arm64_k515" "AX630C_emmc_arm64_k419" "AX630C_fastemmc_arm64_k419" "AX630C_fastemmc_arm32_k419" "AX630C_emmc_arm32_k419" "AX620Q_emmc_arm32_k419"))
 CPPFLAGS += -DAX620E_EMMC=1
 else
 OBJS += ../driver/dmaper/dmaper.o
@@ -247,6 +247,13 @@ endif
 ### SIPEED EDIT ###
 endif
 ### SIPEED EDIT END ###
+
+ifneq (,$(findstring $(PROJECT), "AX620Q_emmc_arm32_k419"))
+CPPFLAGS += -DAX620Q_EMMC_4BIT=1
+SIGN_CAP := 0x54FAFD
+else
+SIGN_CAP := 0x54FAFE
+endif
 
 ifeq ($(strip $(FLASH_TYPE)), nand)
 CPPFLAGS += -DAX620E_NAND=1
@@ -310,7 +317,7 @@ endif
 endif
 
 	touch $(BUILD_PATH)/out/$(PROJECT)/images/ddrinit.bin
-	@python3 $(IMGSIGN_SCRIPT)/sec_boot_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/ddrinit.bin -o $(BUILD_PATH)/out/$(PROJECT)/images/$(DDRINIT_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/key_3072/pubkey.pem -prv $(HOME_PATH)/tools/imgsign/key_3072/private.pem -cap 0x54FEFE -key_bit 3072
+	@python3 $(IMGSIGN_SCRIPT)/sec_boot_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/ddrinit.bin -o $(BUILD_PATH)/out/$(PROJECT)/images/$(DDRINIT_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/key_3072/pubkey.pem -prv $(HOME_PATH)/tools/imgsign/key_3072/private.pem -cap $(SIGN_CAP) -key_bit 3072
 
 else
 
@@ -326,8 +333,8 @@ ifeq ($(FLASH_TYPE), nor)
 	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap 0x54FBFE -key $(HOME_PATH)/boot/bl1/aes-256-p-key0 -small_size_nor
 	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap 0x54FAFE -small_size_nor
 else
-	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap 0x54FBFE -key $(HOME_PATH)/boot/bl1/aes-256-p-key0
-	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap 0x54FAFE
+	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SEC_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap 0x54FBFD -key $(HOME_PATH)/boot/bl1/aes-256-p-key0
+	@python3 $(IMGSIGN_SCRIPT)/spl_AX620E_sign.py -i $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_BIN) -o $(BUILD_PATH)/out/$(PROJECT)/images/$(SPL_SING_BIN) -pub $(HOME_PATH)/tools/imgsign/public.pem -prv $(HOME_PATH)/tools/imgsign/private.pem -fw $(IMGSIGN_SCRIPT)/eip_ax620e.bin -cap $(SIGN_CAP)
 endif
 endif
 

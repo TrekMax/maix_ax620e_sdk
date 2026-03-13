@@ -171,7 +171,7 @@ elif [[ "$PROJECT" =~ "AX620Q_fastnand_arm32_k419" ]]  || [[ "$PROJECT" =~ "AX63
 	CUSTOMER_PATH=$IMG_PATH/customer.ubi
 elif [[ "$PROJECT" =~ "AX630C_fastemmc" ]]; then
 	CUSTOMER_PATH=$IMG_PATH/customer_sparse.ext4
-elif [[ "$PROJECT" =~ "AX630C_emmc" ]] ;then
+elif [[ "$PROJECT" =~ "AX630C_emmc" ]] || [[ "$PROJECT" =~ "AX620Q_emmc" ]];then
 	:
 else
 	echo "make axp failed"

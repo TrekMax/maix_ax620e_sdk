@@ -1,0 +1,4 @@
+@dir: msp/out/$(MSP_OUT_DIR)
+etc/models/aiisp/OS04C10_SDR_2688x1520_AX620E.axmodel
+etc/models/aiisp/OS04C10_HDR_2688x1520_AX620E.axmodel
+etc/os04c10_*.ini
