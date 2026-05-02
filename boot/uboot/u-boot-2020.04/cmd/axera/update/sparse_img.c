@@ -15,6 +15,8 @@
 #include <blk.h>
 #include <fdl_engine.h>
 
+#define SPARSE_RAW_COALESCE 1
+
 extern u_long dl_buf_addr;
 extern u_long dl_buf_size;
 extern struct boot_mode_info boot_info_data;
@@ -114,14 +116,25 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 	sparse_header_t *sparse_header;
 	chunk_header_t *chunk_header;
 	static u64 total_blocks = 0;
+	static u64 total_bytes_written = 0;
+	static ulong write_start_time = 0;
+	static u32 raw_chunk_cnt = 0;
+	static u32 fill_chunk_cnt = 0;
+	static u32 dontcare_chunk_cnt = 0;
 	int fill_buf_num_blks;
 	int i;
 	int j;
 	static u32 current_chunk = 0;
+	ulong chunk_wr_start;
 
 	fill_buf_num_blks = CONFIG_IMAGE_SPARSE_FILLBUF_SIZE / info->blksz;
 
 	if (current_chunk == 0) {
+		write_start_time = get_timer(0);
+		total_bytes_written = 0;
+		raw_chunk_cnt = 0;
+		fill_chunk_cnt = 0;
+		dontcare_chunk_cnt = 0;
 		/* Read and skip over sparse image header */
 		sparse_header = (sparse_header_t *) data;
 
@@ -221,24 +234,87 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 				return -1;
 			}
 
-			bytes =
-			    common_raw_write(part_name, (u64) (blk * info->blksz), (u64) (blkcnt * info->blksz),
-					     (char *)data);
-			if (bytes % info->blksz) {
-				printf("%s: Write block # %llu [ %llu ] error, write bytes %llu\n", __FUNCTION__, blk,
-				       bytes / info->blksz, bytes);
-				return -1;
+			/*
+			 * Coalesce consecutive RAW chunks: peek ahead and
+			 * memmove subsequent RAW data to remove the chunk
+			 * headers between them so we can do one big write.
+			 */
+			{
+				void *merge_base = data;
+				u64 merge_blkcnt = blkcnt;
+				u32 merge_data_sz = chunk_data_sz;
+				u32 merged = 0;
+				void *next_scan = data + chunk_data_sz;
+				u32 hdr_sz = sparse_header->chunk_hdr_sz;
+#ifdef SPARSE_RAW_COALESCE
+				while (chunk + merged + 1 < sparse_header->total_chunks) {
+					ulong next_addr = (ulong)next_scan;
+					chunk_header_t *next_hdr;
+					u32 next_data_sz;
+
+					/* check buffer boundary for next header */
+					if ((next_addr + sizeof(chunk_header_t)) > (dl_buf_addr + dl_buf_size))
+						break;
+
+					next_hdr = (chunk_header_t *)next_scan;
+					if (next_hdr->chunk_type != CHUNK_TYPE_RAW)
+						break;
+
+					next_data_sz = sparse_header->blk_sz * next_hdr->chunk_sz;
+					if (next_hdr->total_sz != (hdr_sz + next_data_sz))
+						break;
+
+					/* check buffer boundary for next data */
+					if ((next_addr + next_hdr->total_sz) > (dl_buf_addr + dl_buf_size))
+						break;
+
+					/* check partition boundary */
+					if (blk + merge_blkcnt + (next_data_sz / info->blksz) > info->start + info->size)
+						break;
+
+					/* memmove data to remove the chunk header gap */
+					memmove(merge_base + merge_data_sz,
+						next_scan + hdr_sz,
+						next_data_sz);
+
+					merge_data_sz += next_data_sz;
+					merge_blkcnt += next_data_sz / info->blksz;
+					merged++;
+					next_scan = next_scan + hdr_sz + next_data_sz;
+				}
+#endif
+
+				chunk_wr_start = get_timer(0);
+				bytes = common_raw_write(part_name,
+					(u64)(blk * info->blksz),
+					(u64)(merge_blkcnt * info->blksz),
+					(char *)merge_base);
+				{
+					ulong wr_ms = get_timer(chunk_wr_start);
+					u64 wr_size = merge_blkcnt * info->blksz;
+					printf("RAW chunk[%u] %llu bytes (%u merged) in %lu ms (%llu KB/s)\n",
+					       chunk, wr_size, merged + 1, wr_ms,
+					       wr_ms > 0 ? wr_size / wr_ms : 0);
+				}
+				if (bytes % info->blksz) {
+					printf("%s: Write block # %llu [ %llu ] error, write bytes %llu\n",
+					       __FUNCTION__, blk, bytes / info->blksz, bytes);
+					return -1;
+				}
+				blks = bytes / info->blksz;
+				if (blks < merge_blkcnt) {
+					printf("%s: Write failed, block # %llu [ %llu ]\n",
+					       __FUNCTION__, blk, blks);
+					return -1;
+				}
+				blk += blks;
+				bytes_written += merge_blkcnt * info->blksz;
+				total_bytes_written += merge_blkcnt * info->blksz;
+				total_blocks += merge_blkcnt * info->blksz / sparse_header->blk_sz;
+				raw_chunk_cnt += merged + 1;
+				chunk += merged;
+				data = (void *)next_scan;
 			}
-			blks = bytes / info->blksz;
-			/* blks might be > blkcnt (eg. NAND bad-blocks) */
-			if (blks < blkcnt) {
-				printf("%s: Write failed, block # %llu [ %llu ]\n", __FUNCTION__, blk, blks);
-				return -1;
-			}
-			blk += blks;
-			bytes_written += blkcnt * info->blksz;
-			total_blocks += chunk_header->chunk_sz;
-			data += chunk_data_sz;
 			break;
 
 		case CHUNK_TYPE_FILL:
@@ -266,6 +342,7 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 				return -1;
 			}
 
+			chunk_wr_start = get_timer(0);
 			for (i = 0; i < blkcnt;) {
 				j = blkcnt - i;
 				if (j > fill_buf_num_blks)
@@ -289,13 +366,23 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 				i += j;
 			}
 			bytes_written += blkcnt * info->blksz;
+			total_bytes_written += blkcnt * info->blksz;
 			total_blocks += chunk_data_sz / sparse_header->blk_sz;
+			{
+				ulong fill_ms = get_timer(chunk_wr_start);
+				u64 fill_size = blkcnt * info->blksz;
+				printf("FILL chunk[%u] %llu bytes in %lu ms (%llu KB/s)\n",
+				       chunk, fill_size, fill_ms,
+				       fill_ms > 0 ? fill_size / fill_ms : 0);
+			}
+			fill_chunk_cnt++;
 			free(fill_buf);
 			break;
 
 		case CHUNK_TYPE_DONT_CARE:
 			blk += blkcnt;
 			total_blocks += chunk_header->chunk_sz;
+			dontcare_chunk_cnt++;
 			break;
 
 		case CHUNK_TYPE_CRC32:
@@ -314,6 +401,7 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 	}
 
 	if (chunk == sparse_header->total_chunks) {
+		ulong write_elapsed = get_timer(write_start_time);
 		printf("Wrote %lld blocks, expected to write %d blocks\n", total_blocks, sparse_header->total_blks);
 		printf("........ wrote %llu bytes to '%s'\n", bytes_written, part_name);
 
@@ -321,7 +409,17 @@ int write_sparse_img(struct sparse_storage *info, char *part_name, void *data, u
 			printf("sparse image write failure\n");
 			return -1;
 		}
-		printf("part %s sparse image write completed\n", part_name);
+		printf("chunks: %u RAW, %u FILL, %u DONT_CARE (total %d)\n",
+		       raw_chunk_cnt, fill_chunk_cnt, dontcare_chunk_cnt,
+		       sparse_header->total_chunks);
+		if (write_elapsed > 0) {
+			u64 speed_kbs = total_bytes_written / write_elapsed;  /* bytes/ms = KB/s */
+			printf("part %s sparse write done, %llu bytes in %lu ms (%llu KB/s, %llu MB/s)\n",
+			       part_name, total_bytes_written, write_elapsed, speed_kbs, speed_kbs / 1024);
+		} else {
+			printf("part %s sparse write done, %llu bytes\n",
+			       part_name, total_bytes_written);
+		}
 		current_chunk = 0;
 	} else {
 		*response = (ulong) data;

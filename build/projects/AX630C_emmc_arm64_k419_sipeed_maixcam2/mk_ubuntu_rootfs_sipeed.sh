@@ -24,6 +24,9 @@ fi
 mkdir -p $TARGET_ROOTFS_DIR
 tar -zxpf $TARGET_ROOTFS_BASE_TAR -C $TARGET_ROOTFS_DIR
 
+# clean virtual filesystem dirs that should not contain real files
+rm -rf $TARGET_ROOTFS_DIR/sys/* $TARGET_ROOTFS_DIR/proc/* $TARGET_ROOTFS_DIR/dev/*
+
 #modify hostname
 echo maixcam2 > $TARGET_ROOTFS_DIR/etc/hostname
 
@@ -84,9 +87,9 @@ echo "kernel.core_pattern=/opt/data/core-%e-%p-%t" >> $TARGET_ROOTFS_DIR/etc/sys
 sed -i '/DefaultTimeoutStartSec/a DefaultTimeoutStartSec=5s' $TARGET_ROOTFS_DIR/etc/systemd/system.conf
 sed -i '/DefaultTimeoutStopSec/a DefaultTimeoutStopSec=5s' $TARGET_ROOTFS_DIR/etc/systemd/system.conf
 
-#serial not login
-# sed -i '/ExecStart/s/^/#/' $TARGET_ROOTFS_DIR/lib/systemd/system/serial-getty@.service
-# sed -i '/ExecStart/a ExecStart=-/sbin/agetty --autologin sipeed --noclear %I $TERM' $TARGET_ROOTFS_DIR/lib/systemd/system/serial-getty@.service
+#serial login on ttyS0 (UART0)
+ln -sf /lib/systemd/system/serial-getty@.service \
+    $TARGET_ROOTFS_DIR/etc/systemd/system/getty.target.wants/serial-getty@ttyS0.service
 
 #modify network
 echo  >> $TARGET_ROOTFS_DIR/etc/network/interfaces

@@ -2,7 +2,7 @@
 #define __FDL_FRAME_H
 #include "common.h"
 
-#define FRAME_DATA_MAXLEN            (1024*50)	//50K max
+#define FRAME_DATA_MAXLEN            (1024*(128+32))	//50K max
 
 typedef enum {
 	FDL_CMD_TYPE_MIN = 0,

@@ -1233,6 +1233,8 @@ int cmd_transfer_data(fdl_frame_t * pframe, void *arg)
 			pfile->unsave_recv_len += pfile->target_len - free_buf_len;
 			pfile->curr_addr += pfile->target_len - free_buf_len;
 			pfile->recv_len += pfile->target_len - free_buf_len;
+			printf("sparse buf reset done, unsave 0x%llX, recv 0x%llX\n",
+			       pfile->unsave_recv_len, pfile->recv_len);
 		} else {
 			ret = fdl_save_to_storage(pfile);
 
@@ -1258,11 +1260,13 @@ int cmd_transfer_data(fdl_frame_t * pframe, void *arg)
 
 	if (pfile->chksum_flag)
 		pfile->recv_chksum = fdl_checksum32(pfile->recv_chksum, pframe->data, pfile->target_len);
+	// printf("%s: receive data len 0x%llX, total recv len 0x%llX\n", __FUNCTION__, pfile->target_len, pfile->recv_len);
 
 	/* four resp pkg
 	 * Header(4)    Payload Data Len(4)     CMD(4)  Payload Data(0) Check Sum(2)
 	 */
 	ret = frame_send_respone(FDL_RESP_ACK);
+	// printf("%s: transfer data ack sent\n", __FUNCTION__);
 	if (ret)
 		return ret;
 

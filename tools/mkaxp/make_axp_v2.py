@@ -5,7 +5,7 @@ import getopt
 import sys, os
 import zipfile, shutil
 import xml.etree.ElementTree as ET
-import hashlib
+import hashlib, tempfile, time
 import copy
 
 '''
@@ -194,7 +194,7 @@ def find_child(parent, name):
         return ET.SubElement(parent, name)
 
 
-def update_xml(path, args):
+def update_xml(path, args, arcnames=None):
     tree = ET.parse(path)
     root = tree.getroot()
 
@@ -210,7 +210,7 @@ def update_xml(path, args):
             node_id = find_child(node_img, XML_NODE_ID)
             for k, v in args['imgs'].items():
                 if k == node_id.text:
-                    node_file.text = get_fname(v)
+                    node_file.text = arcnames[k] if arcnames else get_fname(v)
                     break
 
             node_auth = find_child(node_img, XML_NODE_Auth)
@@ -336,60 +336,46 @@ def parse_args():
 if __name__ == "__main__":
     print('==== Make AXP Script Version: %s ====' % SCRIPT_VERSION)
     args = parse_args()
+    t_start = time.time()
 
     try:
         zip_path = args['zip']
-        zip_dir, zip_file = os.path.split(zip_path)
-        zip_name, _ = os.path.splitext(zip_file)
+        zip_file = os.path.basename(zip_path)
+        rm(zip_path)
 
-        zip_dir = os.path.join(zip_dir, zip_name)
-        rm(args['zip'])
-        rm(zip_dir)
-        os.mkdir(zip_dir)
-        if not os.path.exists(zip_dir):
-            print('\t[Error] mk <%s> error' % zip_dir)
-            exit(1)
-
-        # Copy files including .XML file
-        src_files = []
-        dst_files = []
-
-        src_files.append(args['xml'])
-        dst_files.append(os.path.join(zip_dir, get_fname(args['xml'])))
-
+        # Build arcname mapping (handle duplicate filenames with .1 suffix)
+        xml_arcname = get_fname(args['xml'])
+        used_names = [xml_arcname]
+        arcnames = {}  # ID -> filename in zip
         for k, v in args['imgs'].items():
-            src_files.append(v)
-            dst_file = os.path.join(zip_dir, get_fname(v))
-            if dst_file in dst_files:
-                # same file name of different directory, append .1 suffix
-                # simply rename and copy again even the file contents are equal
-                # example:
-                #  file1: a/b/uImage
-                #  file2: a/uImage
-                #  then destination files are:
-                #      dst/uImage    -- copied from a/b/uImage
-                #      dst/uImage.1  -- copied from a/uImage
-                dst_file = dst_file + '.1'
-                args['imgs'][k] = dst_file
-            dst_files.append(dst_file)
+            name = get_fname(v)
+            if name in used_names:
+                name = name + '.1'
+            used_names.append(name)
+            arcnames[k] = name
 
-        print('\tCopying files ...')
-        for z in zip(src_files, dst_files):
-            copy_warpper(z[0], z[1])
-        print('\t\t%d files are copied.' % len(src_files))
+        # Update XML in a temp file
+        tmp_fd, tmp_xml = tempfile.mkstemp(suffix='.xml')
+        os.close(tmp_fd)
+        shutil.copy(args['xml'], tmp_xml)
+        print('\tUpdating %s ...' % xml_arcname)
+        update_xml(tmp_xml, args, arcnames)
 
-        # Update .XML file
-        xml_file = get_fname(args['xml'])
-        xml_path = os.path.join(zip_dir, xml_file)
-        print('\tUpdating %s ...' % xml_file)
-        update_xml(xml_path, args)
-
-        # Make .zip
+        # Create zip directly from source files (skip copy step)
         print('\tMaking %s ...' % zip_file)
-        make_zip(zip_dir, zip_path)
-        rm(zip_dir)
+        zf = zipfile.ZipFile(zip_path, 'w', zipfile.zlib.DEFLATED, allowZip64=True)
+        try:
+            print('\t\tCompressing %s' % xml_arcname)
+            zf.write(tmp_xml, xml_arcname)
+            for k, v in args['imgs'].items():
+                print('\t\tCompressing %s' % arcnames[k])
+                zf.write(v, arcnames[k])
+            print('\t\t%d files are packed' % (len(args['imgs']) + 1))
+        finally:
+            zf.close()
+            os.remove(tmp_xml)
 
     except Exception as e:
         print('[Error] Make axp error: %s' % e)
     else:
-        print('\n----- SUCCESS -----')
+        print('\n----- SUCCESS (%.2fs) -----' % (time.time() - t_start))
